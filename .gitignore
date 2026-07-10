@@ -1,0 +1,30 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Java
+target/
+*.class
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Build folders
+dist/
+build/
+
+# Environment
+.env
+
+# OS Files
+Thumbs.db
+.DS_Store
