@@ -3,6 +3,7 @@ package com.carwashpro.backend.controller;
 import com.carwashpro.backend.request.RegisterRequest;
 import com.carwashpro.backend.response.UserResponse;
 import com.carwashpro.backend.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +20,11 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(
-            @RequestBody RegisterRequest request) {
+            @Valid @RequestBody RegisterRequest request) {
 
         UserResponse response = userService.register(request);
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
-   
+
 }

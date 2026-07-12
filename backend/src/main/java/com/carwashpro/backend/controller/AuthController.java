@@ -3,6 +3,7 @@ package com.carwashpro.backend.controller;
 import com.carwashpro.backend.request.LoginRequest;
 import com.carwashpro.backend.response.LoginResponse;
 import com.carwashpro.backend.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +18,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request) {
 
         return ResponseEntity.ok(authService.login(request));
 

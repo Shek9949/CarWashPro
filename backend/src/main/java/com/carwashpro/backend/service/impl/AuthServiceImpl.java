@@ -1,6 +1,7 @@
 package com.carwashpro.backend.service.impl;
 
 import com.carwashpro.backend.entity.User;
+import com.carwashpro.backend.exception.ResourceNotFoundException;
 import com.carwashpro.backend.repository.UserRepository;
 import com.carwashpro.backend.request.LoginRequest;
 import com.carwashpro.backend.response.LoginResponse;
@@ -32,8 +33,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
-        }
+            throw new ResourceNotFoundException("Invalid email or password");        }
 
         String token = jwtService.generateToken(
                 user.getEmail(),

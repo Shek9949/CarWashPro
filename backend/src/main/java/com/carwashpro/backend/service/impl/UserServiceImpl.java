@@ -1,5 +1,6 @@
 package com.carwashpro.backend.service.impl;
 
+import com.carwashpro.backend.exception.DuplicateResourceException;
 import com.carwashpro.backend.repository.UserRepository;
 import com.carwashpro.backend.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,12 +26,10 @@ public class UserServiceImpl implements UserService {
     public UserResponse register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists");
-        }
+            throw new DuplicateResourceException("Email already exists");        }
 
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new RuntimeException("Phone number already exists");
-        }
+            throw new DuplicateResourceException("Phone number already exists");        }
 
         User user = UserMapper.toEntity(request);
 
