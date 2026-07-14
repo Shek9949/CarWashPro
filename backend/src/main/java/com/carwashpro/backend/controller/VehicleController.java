@@ -44,4 +44,30 @@ public class VehicleController {
                 vehicleService.getVehicleById(id)
         );
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<VehicleResponse> updateVehicle(
+            @PathVariable Long id,
+            @Valid @RequestBody VehicleRequest request) {
+
+        return ResponseEntity.ok(
+                vehicleService.updateVehicle(id, request)
+        );
+    }
+
+    @PatchMapping("/{id}/default")
+    public ResponseEntity<VehicleResponse> setDefaultVehicle(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                vehicleService.setDefaultVehicle(id)
+        );
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteVehicle(
+            @PathVariable Long id) {
+
+        vehicleService.deleteVehicle(id);
+
+        return ResponseEntity.noContent().build();
+    }
 }

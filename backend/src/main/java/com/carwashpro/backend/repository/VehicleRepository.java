@@ -1,5 +1,6 @@
 package com.carwashpro.backend.repository;
 
+import com.carwashpro.backend.constant.VehicleStatus;
 import com.carwashpro.backend.entity.User;
 import com.carwashpro.backend.entity.Vehicle;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,7 +14,16 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
 
     List<Vehicle> findByCustomer(User customer);
 
+    List<Vehicle> findByCustomerAndStatus(
+            User customer,
+            VehicleStatus status);
     Optional<Vehicle> findByIdAndCustomer(Long id, User customer);
+
+    Optional<Vehicle> findByIdAndCustomerAndStatus(
+            Long id,
+            User customer,
+            VehicleStatus status
+    );
 
     boolean existsByVehicleNumber(String vehicleNumber);
 

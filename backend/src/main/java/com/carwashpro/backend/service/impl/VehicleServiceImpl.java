@@ -1,5 +1,6 @@
 package com.carwashpro.backend.service.impl;
 
+import com.carwashpro.backend.constant.VehicleStatus;
 import com.carwashpro.backend.mapper.VehicleMapper;
 import com.carwashpro.backend.repository.VehicleRepository;
 import com.carwashpro.backend.repository.UserRepository;
@@ -79,7 +80,8 @@ public class VehicleServiceImpl implements VehicleService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Customer not found"));
 
-        return vehicleRepository.findByCustomer(customer)
+        return vehicleRepository
+                .findByCustomerAndStatus(customer, VehicleStatus.ACTIVE)
                 .stream()
                 .map(vehicleMapper::toResponse)
                 .toList();
@@ -103,17 +105,105 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    public VehicleResponse updateVehicle(Long vehicleId, VehicleRequest request) {
-        return null;
-    }
+    public VehicleResponse updateVehicle(Long vehicleId,
+                                         VehicleRequest request) {
 
+        String email = securityUtil.getCurrentUserEmail();
+
+        User customer = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Customer not found"));
+
+        Vehicle vehicle = vehicleRepository
+                .findByIdAndCustomerAndStatus(
+                        vehicleId,
+                        customer,
+                        VehicleStatus.ACTIVE
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Active vehicle not found"));
+
+        vehicle.setBrand(request.getBrand());
+        vehicle.setModel(request.getModel());
+        vehicle.setVehicleType(request.getVehicleType());
+        vehicle.setFuelType(request.getFuelType());
+        vehicle.setColor(request.getColor());
+        vehicle.setManufactureYear(request.getManufactureYear());
+
+        Vehicle updatedVehicle = vehicleRepository.save(vehicle);
+
+        return vehicleMapper.toResponse(updatedVehicle);
+    }
     @Override
     public void deleteVehicle(Long vehicleId) {
 
+        String email = securityUtil.getCurrentUserEmail();
+
+        User customer = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Customer not found"));
+
+        Vehicle vehicle = vehicleRepository
+                .findByIdAndCustomer(vehicleId, customer)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Vehicle not found"));
+
+        boolean wasDefault = vehicle.getIsDefault();
+
+        vehicle.setStatus(VehicleStatus.INACTIVE);
+        vehicle.setIsDefault(false);
+
+        vehicleRepository.save(vehicle);
+
+        if (wasDefault) {
+
+            List<Vehicle> activeVehicles =
+                    vehicleRepository.findByCustomerAndStatus(
+                            customer,
+                            VehicleStatus.ACTIVE
+                    );
+
+            if (!activeVehicles.isEmpty()) {
+
+                Vehicle newDefault = activeVehicles.get(0);
+
+                newDefault.setIsDefault(true);
+
+                vehicleRepository.save(newDefault);
+            }
+        }
     }
 
     @Override
     public VehicleResponse setDefaultVehicle(Long vehicleId) {
-        return null;
+
+        String email = securityUtil.getCurrentUserEmail();
+
+        User customer = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Customer not found"));
+
+        Vehicle selectedVehicle = vehicleRepository
+                .findByIdAndCustomerAndStatus(
+                        vehicleId,
+                        customer,
+                        VehicleStatus.ACTIVE
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Active vehicle not found"
+                        ));
+        List<Vehicle> vehicles =
+                vehicleRepository.findByCustomer(customer);
+
+        for (Vehicle vehicle : vehicles) {
+            vehicle.setIsDefault(false);
+        }
+
+        selectedVehicle.setIsDefault(true);
+
+        vehicleRepository.saveAll(vehicles);
+
+        return vehicleMapper.toResponse(selectedVehicle);
     }
 }
