@@ -1,9 +1,11 @@
 package com.carwashpro.backend.service.impl;
 
+import com.carwashpro.backend.constant.UserStatus;
 import com.carwashpro.backend.entity.User;
 import com.carwashpro.backend.exception.ResourceNotFoundException;
 import com.carwashpro.backend.repository.UserRepository;
 import com.carwashpro.backend.request.LoginRequest;
+import com.carwashpro.backend.request.RegisterRequest;
 import com.carwashpro.backend.response.LoginResponse;
 import com.carwashpro.backend.security.JwtService;
 import com.carwashpro.backend.service.AuthService;
@@ -27,13 +29,38 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public void register(RegisterRequest request) {
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new RuntimeException("Phone number already exists");
+        }
+
+        User user = User.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail())
+                .phone(request.getPhone())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(request.getRole())
+                .status(UserStatus.ACTIVE)
+                .build();
+
+        userRepository.save(user);
+    }
+
+    @Override
     public LoginResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new ResourceNotFoundException("Invalid email or password");        }
+            throw new ResourceNotFoundException("Invalid email or password");
+        }
 
         String token = jwtService.generateToken(
                 user.getEmail(),
