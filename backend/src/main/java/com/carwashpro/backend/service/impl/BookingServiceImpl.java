@@ -1,25 +1,29 @@
 package com.carwashpro.backend.service.impl;
 
 import com.carwashpro.backend.constant.BookingStatus;
+import com.carwashpro.backend.constant.VehicleStatus;
+import com.carwashpro.backend.entity.Booking;
+import com.carwashpro.backend.entity.ServiceCatalog;
+import com.carwashpro.backend.entity.User;
+import com.carwashpro.backend.entity.Vehicle;
+import com.carwashpro.backend.exception.BusinessException;
+import com.carwashpro.backend.exception.ResourceNotFoundException;
 import com.carwashpro.backend.mapper.BookingMapper;
 import com.carwashpro.backend.repository.BookingRepository;
 import com.carwashpro.backend.repository.ServiceCatalogRepository;
 import com.carwashpro.backend.repository.UserRepository;
 import com.carwashpro.backend.repository.VehicleRepository;
 import com.carwashpro.backend.request.BookingRequest;
+import com.carwashpro.backend.request.UpdateBookingStatusRequest;
 import com.carwashpro.backend.response.BookingResponse;
 import com.carwashpro.backend.security.SecurityUtil;
 import com.carwashpro.backend.service.BookingService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import com.carwashpro.backend.constant.VehicleStatus;
-import com.carwashpro.backend.entity.Booking;
-import com.carwashpro.backend.entity.ServiceCatalog;
-import com.carwashpro.backend.entity.User;
-import com.carwashpro.backend.entity.Vehicle;
-import com.carwashpro.backend.exception.ResourceNotFoundException;
-import com.carwashpro.backend.request.UpdateBookingStatusRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -49,8 +53,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingResponse createBooking(
-            BookingRequest request) {
+    public BookingResponse createBooking(BookingRequest request) {
 
         String email = securityUtil.getCurrentUserEmail();
 
@@ -64,14 +67,29 @@ public class BookingServiceImpl implements BookingService {
                         new ResourceNotFoundException("Vehicle not found"));
 
         if (!vehicle.getStatus().equals(VehicleStatus.ACTIVE)) {
-            throw new ResourceNotFoundException(
-                    "Vehicle is inactive");
+            throw new ResourceNotFoundException("Vehicle is inactive");
         }
 
         ServiceCatalog service = serviceRepository
                 .findByIdAndActiveTrue(request.getServiceId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Service not found"));
+
+        if (request.getBookingDate().isBefore(LocalDateTime.now())) {
+            throw new BusinessException(
+                    "Booking date cannot be in the past.");
+        }
+
+        boolean alreadyBooked =
+                bookingRepository.existsByVehicleAndBookingDateAndStatusNot(
+                        vehicle,
+                        request.getBookingDate(),
+                        BookingStatus.CANCELLED);
+
+        if (alreadyBooked) {
+            throw new BusinessException(
+                    "Vehicle already has a booking for this time slot.");
+        }
 
         Booking booking = Booking.builder()
                 .customer(customer)
@@ -80,11 +98,11 @@ public class BookingServiceImpl implements BookingService {
                 .bookingDate(request.getBookingDate())
                 .build();
 
-        Booking savedBooking =
-                bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
 
         return bookingMapper.toResponse(savedBooking);
     }
+
     @Override
     public List<BookingResponse> getMyBookings() {
 
@@ -143,15 +161,18 @@ public class BookingServiceImpl implements BookingService {
                         new ResourceNotFoundException("Booking not found"));
 
         if (booking.getStatus() == BookingStatus.COMPLETED) {
-            throw new IllegalArgumentException("Completed booking cannot be cancelled.");
+            throw new BusinessException(
+                    "Completed booking cannot be cancelled.");
         }
 
         if (booking.getStatus() == BookingStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Booking in progress cannot be cancelled.");
+            throw new BusinessException(
+                    "Booking in progress cannot be cancelled.");
         }
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
-            throw new IllegalArgumentException("Booking is already cancelled.");
+            throw new BusinessException(
+                    "Booking is already cancelled.");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
@@ -160,15 +181,23 @@ public class BookingServiceImpl implements BookingService {
 
         return bookingMapper.toResponse(updatedBooking);
     }
+
     @Override
-    public List<BookingResponse> getAllBookings() {
+    public Page<BookingResponse> getAllBookings(
+            BookingStatus status,
+            Pageable pageable) {
 
-        List<Booking> bookings = bookingRepository.findAll();
+        Page<Booking> bookings;
 
-        return bookings.stream()
-                .map(bookingMapper::toResponse)
-                .toList();
+        if (status != null) {
+            bookings = bookingRepository.findByStatus(status, pageable);
+        } else {
+            bookings = bookingRepository.findAll(pageable);
+        }
+
+        return bookings.map(bookingMapper::toResponse);
     }
+
     @Override
     public BookingResponse updateBookingStatus(
             Long bookingId,
@@ -182,7 +211,7 @@ public class BookingServiceImpl implements BookingService {
         BookingStatus newStatus = request.getStatus();
 
         if (!isValidStatusTransition(currentStatus, newStatus)) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "Invalid booking status transition.");
         }
 
@@ -192,6 +221,7 @@ public class BookingServiceImpl implements BookingService {
 
         return bookingMapper.toResponse(updatedBooking);
     }
+
     private boolean isValidStatusTransition(
             BookingStatus current,
             BookingStatus next) {

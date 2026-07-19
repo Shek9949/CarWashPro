@@ -1,5 +1,6 @@
 package com.carwashpro.backend.controller;
 
+import com.carwashpro.backend.constant.BookingStatus;
 import com.carwashpro.backend.request.BookingRequest;
 import com.carwashpro.backend.response.BookingResponse;
 import com.carwashpro.backend.service.BookingService;
@@ -8,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.carwashpro.backend.request.UpdateBookingStatusRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -56,10 +59,15 @@ public class BookingController {
         );
     }
     @GetMapping
-    public ResponseEntity<List<BookingResponse>> getAllBookings() {
+    public ResponseEntity<Page<BookingResponse>> getAllBookings(
+
+            @RequestParam(required = false)
+            BookingStatus status,
+
+            Pageable pageable) {
 
         return ResponseEntity.ok(
-                bookingService.getAllBookings()
+                bookingService.getAllBookings(status, pageable)
         );
     }
 

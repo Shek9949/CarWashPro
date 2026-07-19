@@ -3,11 +3,16 @@ package com.carwashpro.backend.repository;
 import com.carwashpro.backend.constant.BookingStatus;
 import com.carwashpro.backend.entity.Booking;
 import com.carwashpro.backend.entity.User;
+import com.carwashpro.backend.entity.Vehicle;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
 
 @Repository
 public interface BookingRepository
@@ -19,6 +24,16 @@ public interface BookingRepository
             User customer,
             BookingStatus status
     );
+    boolean existsByVehicleAndBookingDateAndStatusNot(
+            Vehicle vehicle,
+            LocalDateTime bookingDate,
+            BookingStatus status);
+
+    Page<Booking> findByStatus(
+            BookingStatus status,
+            Pageable pageable
+    );
+
 
     List<Booking> findByCustomer_IdOrderByCreatedAtDesc(Long customerId);
     Optional<Booking> findByIdAndCustomer_Id(Long bookingId, Long customerId);

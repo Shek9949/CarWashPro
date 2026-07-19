@@ -9,6 +9,7 @@ public enum VehicleType {
     PICKUP,
     BIKE,
     TRUCK,
+    CAR,
     BUS
 
 }
